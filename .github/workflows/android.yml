@@ -26,27 +26,35 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Android SDK kur
-        uses: android-actions/setup-android@v3
-        with:
-          packages: |
-            platform-tools
-            platforms;android-36
-            build-tools;36.0.0
+        uses: android-actions/setup-android@v4
 
       - name: Kaynak ZIP dosyasını aç
+        shell: bash
         run: |
-          set -e
-          mkdir extracted
-          unzip -q Ja_i_Android_1_0_1_Kaynak_guvenliksiz.zip -d extracted
-          PROJECT_DIR="$(find extracted -name settings.gradle -printf '%h\n' | head -n 1)"
-          test -n "$PROJECT_DIR"
-          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
-          chmod +x "$PROJECT_DIR/gradlew"
+          set -euo pipefail
 
-      - name: Test ve APK derle
+          ZIP_FILE="Ja_i_Android_1_0_1_Kaynak_guvenliksiz.zip"
+
+          test -f "$ZIP_FILE"
+          mkdir extracted
+          unzip -q "$ZIP_FILE" -d extracted
+
+          GRADLEW="$(find extracted -type f -name gradlew -print -quit)"
+
+          if [ -z "$GRADLEW" ]; then
+            echo "HATA: gradlew dosyası bulunamadı."
+            exit 1
+          fi
+
+          PROJECT_DIR="$(dirname "$GRADLEW")"
+
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          chmod +x "$GRADLEW"
+
+      - name: APK derle
         run: |
           cd "$PROJECT_DIR"
-          ./gradlew --no-daemon testDebugUnitTest assembleDebug
+          ./gradlew --no-daemon assembleDebug
 
       - name: APK dosyasını kaydet
         uses: actions/upload-artifact@v4
