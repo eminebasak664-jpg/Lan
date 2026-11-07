@@ -11,6 +11,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Kaynak kodu al
         uses: actions/checkout@v4
@@ -26,6 +27,11 @@ jobs:
 
       - name: Android SDK kur
         uses: android-actions/setup-android@v3
+        with:
+          packages: |
+            platform-tools
+            platforms;android-36
+            build-tools;36.0.0
 
       - name: Kaynak ZIP dosyasını aç
         run: |
@@ -36,11 +42,6 @@ jobs:
           test -n "$PROJECT_DIR"
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
           chmod +x "$PROJECT_DIR/gradlew"
-
-      - name: Android SDK bileşenlerini kur
-        run: |
-          yes | sdkmanager --licenses >/dev/null
-          sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
 
       - name: Test ve APK derle
         run: |
