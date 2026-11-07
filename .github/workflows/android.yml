@@ -1,0 +1,56 @@
+name: Ja.i Android APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kaynak kodu al
+        uses: actions/checkout@v4
+
+      - name: JDK 21 kur
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Gradle önbelleği
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Android SDK kur
+        uses: android-actions/setup-android@v3
+
+      - name: Kaynak ZIP dosyasını aç
+        run: |
+          set -e
+          mkdir extracted
+          unzip -q Ja_i_Android_1_0_1_Kaynak_guvenliksiz.zip -d extracted
+          PROJECT_DIR="$(find extracted -name settings.gradle -printf '%h\n' | head -n 1)"
+          test -n "$PROJECT_DIR"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          chmod +x "$PROJECT_DIR/gradlew"
+
+      - name: Android SDK bileşenlerini kur
+        run: |
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+
+      - name: Test ve APK derle
+        run: |
+          cd "$PROJECT_DIR"
+          ./gradlew --no-daemon testDebugUnitTest assembleDebug
+
+      - name: APK dosyasını kaydet
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ja-i-debug-apk
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
